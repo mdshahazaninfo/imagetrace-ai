@@ -52,9 +52,10 @@ export default function Analyzer() {
       </section>
 
       <section className="card">
-        <p className="eyebrow">Step 2 · optional</p><h2>Search public presence</h2>
+        <p className="eyebrow">Step 2 · required for social search</p><h2>Search public presence</h2>
         <label>Public name you already know<input value={publicName} onChange={(e) => setPublicName(e.target.value)} placeholder="e.g. Jane Example" maxLength={120} /></label>
-        <p className="muted">This field enables Wikipedia, Facebook, Instagram, official-site and news search. The app does not infer a name from a face.</p>
+        <p className="muted"><strong>Facebook/Instagram/Wikipedia search only runs when you provide a name.</strong> The image itself is used for source/OCR/logo/landmark analysis, not to identify an unknown face.</p>
+        {!publicName.trim() && <p className="warning">No name entered: Facebook, Instagram, Wikipedia, official-site and news presence will be skipped.</p>}
         <button type="submit" disabled={busy || !file}>{busy ? "Analyzing sources…" : "Analyze image"}</button>
         {error && <p className="error">{error}</p>}
       </section>
