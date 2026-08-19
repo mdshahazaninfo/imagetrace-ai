@@ -47,7 +47,11 @@ export async function POST(request: Request) {
       : Promise.resolve({ matches: [], status: { presence: "skipped: no public name supplied" } });
 
     const [metadata, visionResult, presence] = await Promise.all([metadataPromise, visionPromise, presencePromise]);
-    if (visionResult.error) warnings.push(visionResult.error);
+    if (visionResult.error) warnings.push(`Image provider unavailable: ${visionResult.error}`);
+    if (!confirmedPublicName) warnings.push("Public presence search skipped: enter a public name you already know to search Facebook, Instagram, Wikipedia, official sites and news.");
+    if (confirmedPublicName && Object.values(presence.status).some((v) => v === "search provider not configured")) {
+      warnings.push("General web search provider is not configured. Add BRAVE_SEARCH_API_KEY (recommended) or the supported fallback credentials in Vercel.");
+    }
 
     const report: AnalysisReport = {
       image: {
@@ -83,7 +87,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Unexpected error." }, { status: 500 });
   }
 }
-
 
 function matchesDeclaredImageType(buffer: Buffer, mime: string): boolean {
   if (mime === "image/jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
