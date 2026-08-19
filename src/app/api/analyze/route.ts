@@ -11,6 +11,7 @@ import { saveAnalysis } from "@/lib/persist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
