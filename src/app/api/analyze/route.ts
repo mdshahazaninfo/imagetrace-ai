@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { AnalysisReport } from "@/lib/types";
+import { governmentRegistryStats, enrichWebMatchesWithGovernmentTrust } from "@/lib/government/registry";
 import { readSafeExif } from "@/lib/image/exif";
 import { analyzeWithGoogleVision } from "@/lib/image/vision";
 import { searchPublicPresence } from "@/lib/presence";
@@ -33,8 +34,8 @@ export async function POST(request: Request) {
     }
     const sha256 = createHash("sha256").update(buffer).digest("hex");
     const warnings: string[] = [
-      "This report is source-based and does not perform face recognition or unknown-person identification.",
-      "Social/web results are textual candidates, not proof that an account belongs to the person in the image."
+      "Source-based verification only. The app does not identify an unknown person from facial appearance.",
+      "Facebook/Instagram results are public search candidates and are not proof of account ownership."
     ];
 
     const metadataPromise = readSafeExif(buffer);
@@ -44,13 +45,25 @@ export async function POST(request: Request) {
     );
     const presencePromise = confirmedPublicName
       ? searchPublicPresence(confirmedPublicName)
-      : Promise.resolve({ matches: [], status: { presence: "skipped: no public name supplied" } });
+      : Promise.resolve({ matches: [], status: { presence: "skipped: public name required for social/web profile search" } });
 
     const [metadata, visionResult, presence] = await Promise.all([metadataPromise, visionPromise, presencePromise]);
     if (visionResult.error) warnings.push(`Image provider unavailable: ${visionResult.error}`);
-    if (!confirmedPublicName) warnings.push("Public presence search skipped: enter a public name you already know to search Facebook, Instagram, Wikipedia, official sites and news.");
+    if (!confirmedPublicName) warnings.push("Public presence search skipped: enter a public name you already know to search Bangladesh Government sources, Facebook, Instagram, Wikipedia, official sites and news.");
     if (confirmedPublicName && Object.values(presence.status).some((v) => v === "search provider not configured")) {
       warnings.push("General web search provider is not configured. Add BRAVE_SEARCH_API_KEY (recommended) or the supported fallback credentials in Vercel.");
+    }
+
+    const vision = visionResult.data
+      ? { ...visionResult.data, matches: enrichWebMatchesWithGovernmentTrust(visionResult.data.matches) }
+      : null;
+
+    const stats = governmentRegistryStats();
+    const trustedWebMatches = vision?.matches.filter((m) => m.governmentTrust?.level === "trusted_registry").length ?? 0;
+    const unlistedGovBdMatches = vision?.matches.filter((m) => m.governmentTrust?.level === "gov_bd_unlisted").length ?? 0;
+
+    if (trustedWebMatches > 0) {
+      warnings.push(`${trustedWebMatches} image/web source match(es) found on domains listed in the uploaded Bangladesh Government master registry.`);
     }
 
     const report: AnalysisReport = {
@@ -62,10 +75,19 @@ export async function POST(request: Request) {
       },
       confirmedPublicName,
       metadata,
-      vision: visionResult.data,
+      vision,
       presence: presence.matches,
+      governmentVerification: {
+        registryVersion: stats.checked,
+        sourceCount: stats.sourceCount,
+        uniqueDomains: stats.uniqueDomains,
+        trustedWebMatches,
+        unlistedGovBdMatches,
+        coverageNote: stats.coverageNote
+      },
       providerStatus: {
         googleVision: visionResult.error ? visionResult.error : "ok",
+        governmentRegistry: `loaded ${stats.sourceCount} records / ${stats.uniqueDomains} unique domains; checked ${stats.checked}`,
         ...presence.status
       },
       warnings,

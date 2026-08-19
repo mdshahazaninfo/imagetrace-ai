@@ -49,13 +49,13 @@ export default function Analyzer() {
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         {file && <p className="fileMeta">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</p>}
+        <p className="muted">Image source results are checked against the uploaded Bangladesh Government websites master registry.</p>
       </section>
 
       <section className="card">
         <p className="eyebrow">Step 2 · required for social search</p><h2>Search public presence</h2>
         <label>Public name you already know<input value={publicName} onChange={(e) => setPublicName(e.target.value)} placeholder="e.g. Jane Example" maxLength={120} /></label>
-        <p className="muted"><strong>Facebook/Instagram/Wikipedia search only runs when you provide a name.</strong> The image itself is used for source/OCR/logo/landmark analysis, not to identify an unknown face.</p>
-        {!publicName.trim() && <p className="warning">No name entered: Facebook, Instagram, Wikipedia, official-site and news presence will be skipped.</p>}
+        <p className="muted">Name-based search checks Bangladesh Government sources, Wikipedia, public Facebook/Instagram search results, official websites and news. The app does not infer a person's identity from facial appearance.</p>
         <button type="submit" disabled={busy || !file}>{busy ? "Analyzing sources…" : "Analyze image"}</button>
         {error && <p className="error">{error}</p>}
       </section>

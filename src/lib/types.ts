@@ -1,10 +1,30 @@
 export type MatchType = "full" | "partial" | "page" | "similar";
 
+export type TrustedGovernmentSource = {
+  category: string;
+  nameBn: string;
+  nameEn: string;
+  url: string;
+  domain: string;
+  source: string;
+  checked: string;
+  [key: string]: unknown;
+};
+
+export type GovernmentTrust = {
+  level: "trusted_registry" | "gov_bd_unlisted";
+  label: string;
+  domain: string;
+  registryChecked: string;
+  source?: TrustedGovernmentSource;
+};
+
 export type WebMatch = {
   url: string;
   title?: string;
   type: MatchType;
   score?: number;
+  governmentTrust?: GovernmentTrust;
 };
 
 export type VisionResult = {
@@ -28,6 +48,7 @@ export type SafeExif = {
 };
 
 export type PresenceCategory =
+  | "government"
   | "facebook"
   | "instagram"
   | "wikipedia"
@@ -44,6 +65,16 @@ export type PresenceMatch = {
   provider: string;
   confidence: number;
   confidenceLabel: string;
+  governmentTrust?: GovernmentTrust;
+};
+
+export type GovernmentVerificationSummary = {
+  registryVersion: string;
+  sourceCount: number;
+  uniqueDomains: number;
+  trustedWebMatches: number;
+  unlistedGovBdMatches: number;
+  coverageNote: string;
 };
 
 export type AnalysisReport = {
@@ -58,6 +89,7 @@ export type AnalysisReport = {
   metadata: SafeExif;
   vision: VisionResult | null;
   presence: PresenceMatch[];
+  governmentVerification: GovernmentVerificationSummary;
   providerStatus: Record<string, string>;
   warnings: string[];
   createdAt: string;
